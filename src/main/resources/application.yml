@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: kkoj-code-sandbox
+server:
+  port: 8102
