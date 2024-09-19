@@ -2,32 +2,44 @@ package com.lhk.kkojcodesandbox;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.dfa.FoundWord;
+import cn.hutool.dfa.WordTree;
 import com.lhk.kkojcodesandbox.model.ExecuteCodeRequest;
 import com.lhk.kkojcodesandbox.model.ExecuteCodeResponse;
 import com.lhk.kkojcodesandbox.model.ExecuteMessage;
 import com.lhk.kkojcodesandbox.model.JudgeInfo;
 import com.lhk.kkojcodesandbox.utils.ProcessUtils;
-import org.omg.SendingContext.RunTime;
 
-import java.io.*;
-import java.nio.charset.Charset;
+import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.sql.SQLOutput;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 public class JavaNativeCodeSandBox implements CodeSandBox {
 
     private static final String TEMP_CODE_DIR_NAME = "tempCode";
     private static final String TEMP_FILE_NAME = "Main.java";
+    private static final String SECURITY_MANAGER_DIR = File.separator+"src"+File.separator+"main"+File.separator+"resources"+File.separator+"security";
+    private static final String SECURITY_MANAGER_NAME = "MySecurityManager";
+
+    /**
+     * 命令黑名单
+     */
+    private static List<String> blackList = Arrays.asList("rm", "sh", "bash", "Files",  "System.getProperty", "exec");
 
     @Override
     public ExecuteCodeResponse executeCode(ExecuteCodeRequest executeCodeRequest) {
         List<String> inputList = executeCodeRequest.getInputList();
         String code = executeCodeRequest.getCode();
         String language = executeCodeRequest.getLanguage();
+
+        // 校验代码是否符合要求
+        if (blackList.stream().anyMatch(subStr -> code.contains(subStr))){
+            return new ExecuteCodeResponse(new ArrayList<>(), "代码含有非法词汇", 2, null);
+        }
 
         //1. 把用户的代码保存为文件
         String userDir = System.getProperty("user.dir");
@@ -54,7 +66,9 @@ public class JavaNativeCodeSandBox implements CodeSandBox {
         //3. 执行代码，得到输出结果
         List<ExecuteMessage> execMessageList = new ArrayList<>();
         for (String inputArgs : inputList){
-            String execCmd = String.format("java -Dfile.encoding=UTF-8 -cp %s Main %s", userCodeDIR, inputArgs);
+            String execCmd = String.format("java -Xmx256m -Dfile.encoding=UTF-8 -cp %s Main %s", userCodeDIR, inputArgs);
+//            String execCmd = String.format("java -Xmx256m -Dfile.encoding=UTF-8 -cp %s;%s -Djava.security.manager=%s Main %s", userCodeDIR, userDir+SECURITY_MANAGER_DIR, SECURITY_MANAGER_NAME, inputArgs);
+
             ExecuteMessage executeMessage = null;
             try {
                 executeMessage = ProcessUtils.run(execCmd, "执行");
