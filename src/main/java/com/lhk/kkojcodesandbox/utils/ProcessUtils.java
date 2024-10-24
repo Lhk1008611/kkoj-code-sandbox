@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 
 public class ProcessUtils {
 
-    private static final long TIME_OUT = 5000L;
+    public static final long TIME_OUT = 10000L;
 
 
     public static ExecuteMessage run(String command, String operationName) throws IOException, InterruptedException {
@@ -24,8 +24,8 @@ public class ProcessUtils {
             new Thread(() -> {
                     try {
                         Thread.sleep(TIME_OUT);
-                        System.out.println("程序执行超时");
                         if (runProcess.isAlive()){
+                            System.out.println("程序执行超时");
                             runProcess.destroy();
                         }
                     } catch (InterruptedException e) {

@@ -67,8 +67,8 @@ public class JavaNativeCodeSandBox implements CodeSandBox {
         List<ExecuteMessage> execMessageList = new ArrayList<>();
         for (String inputArgs : inputList){
             String execCmd = String.format("java -Xmx256m -Dfile.encoding=UTF-8 -cp %s Main %s", userCodeDIR, inputArgs);
+            // 配置 java 安全管理器命令
 //            String execCmd = String.format("java -Xmx256m -Dfile.encoding=UTF-8 -cp %s;%s -Djava.security.manager=%s Main %s", userCodeDIR, userDir+SECURITY_MANAGER_DIR, SECURITY_MANAGER_NAME, inputArgs);
-
             ExecuteMessage executeMessage = null;
             try {
                 executeMessage = ProcessUtils.run(execCmd, "执行");
