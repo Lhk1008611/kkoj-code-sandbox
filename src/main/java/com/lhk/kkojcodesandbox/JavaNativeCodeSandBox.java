@@ -7,6 +7,7 @@ import com.lhk.kkojcodesandbox.model.ExecuteCodeResponse;
 import com.lhk.kkojcodesandbox.model.ExecuteMessage;
 import com.lhk.kkojcodesandbox.model.JudgeInfo;
 import com.lhk.kkojcodesandbox.utils.ProcessUtils;
+import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,6 +20,7 @@ import java.util.UUID;
 /**
  * Java 原生实现代码沙箱
  */
+@Component
 public class JavaNativeCodeSandBox implements CodeSandBox {
 
     private static final String TEMP_CODE_DIR_NAME = "tempCode";

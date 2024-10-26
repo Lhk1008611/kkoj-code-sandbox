@@ -14,7 +14,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 import org.springframework.util.StringUtils;
 
-import javax.annotation.Resource;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;

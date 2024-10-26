@@ -13,9 +13,10 @@ import com.lhk.kkojcodesandbox.model.ExecuteCodeResponse;
 import com.lhk.kkojcodesandbox.model.ExecuteMessage;
 import com.lhk.kkojcodesandbox.model.JudgeInfo;
 import com.lhk.kkojcodesandbox.utils.ProcessUtils;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 import org.springframework.util.StringUtils;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -28,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * docker 实现代码沙箱
  */
+@Component
 public class JavaDockerCodeSandBox implements CodeSandBox {
 
     private final DockerClient dockerClient;

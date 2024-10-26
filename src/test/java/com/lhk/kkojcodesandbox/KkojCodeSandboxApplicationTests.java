@@ -25,20 +25,25 @@ import java.util.Arrays;
 @SpringBootTest
 class KkojCodeSandboxApplicationTests {
 
+    @Resource
+    private JavaNativeCodeSandBox javaNativeCodeSandBox;
+
+    @Resource
+    private NativeCodeSandBox nativeCodeSandBox;
+
     @Test
     void contextLoads() {
-        JavaNativeCodeSandBox javaNativeCodeSandBox = new JavaNativeCodeSandBox();
         ExecuteCodeRequest executeCodeRequest = new ExecuteCodeRequest();
         executeCodeRequest.setInputList(Arrays.asList("1 2", "3 4"));
-//        String code = ResourceUtil.readStr("testCode/simpleComputeArgs/Main.java", StandardCharsets.UTF_8);
+        String code = ResourceUtil.readStr("testCode/simpleComputeArgs/Main.java", StandardCharsets.UTF_8);
 //        String code = ResourceUtil.readStr("testCode/unsafeCode/ReadFileError.java", StandardCharsets.UTF_8);
 //        String code = ResourceUtil.readStr("testCode/unsafeCode/WriteFileError.java", StandardCharsets.UTF_8);
 //        String code = ResourceUtil.readStr("testCode/unsafeCode/MemoryError.java", StandardCharsets.UTF_8);
-        String code = ResourceUtil.readStr("testCode/unsafeCode/RunFileError.java", StandardCharsets.UTF_8);
+//        String code = ResourceUtil.readStr("testCode/unsafeCode/RunFileError.java", StandardCharsets.UTF_8);
 
         executeCodeRequest.setCode(code);
         executeCodeRequest.setLanguage("java");
-        ExecuteCodeResponse executeCodeResponse = javaNativeCodeSandBox.executeCode(executeCodeRequest);
+        ExecuteCodeResponse executeCodeResponse = nativeCodeSandBox.executeCode(executeCodeRequest);
         System.out.println(executeCodeResponse);
     }
 
