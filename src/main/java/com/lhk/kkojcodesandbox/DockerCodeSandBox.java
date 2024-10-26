@@ -1,8 +1,6 @@
 package com.lhk.kkojcodesandbox;
 
-import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ArrayUtil;
-import cn.hutool.core.util.StrUtil;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.async.ResultCallback;
 import com.github.dockerjava.api.command.*;
@@ -11,64 +9,44 @@ import com.github.dockerjava.core.command.ExecStartResultCallback;
 import com.lhk.kkojcodesandbox.model.ExecuteCodeRequest;
 import com.lhk.kkojcodesandbox.model.ExecuteCodeResponse;
 import com.lhk.kkojcodesandbox.model.ExecuteMessage;
-import com.lhk.kkojcodesandbox.model.JudgeInfo;
 import com.lhk.kkojcodesandbox.utils.ProcessUtils;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 import org.springframework.util.StringUtils;
+
+import javax.annotation.Resource;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-/**
- * docker 实现代码沙箱
- */
-public class JavaDockerCodeSandBox implements CodeSandBox {
+@Component
+public class DockerCodeSandBox extends CodeSandBoxTemplate{
 
     private final DockerClient dockerClient;
-
-    private static final String TEMP_CODE_DIR_NAME = "tempCode";
-    private static final String TEMP_FILE_NAME = "Main.java";
     private static final String DK_IMAGE_NAME = "openjdk:8u92-jdk-alpine";
     private static boolean IS_FIRST_JDK_IMAGE_PULL = true;
     private static boolean IS_RUN_TIME_OUT = true;
 
-    public JavaDockerCodeSandBox(DockerClient dockerClient) {
+    public DockerCodeSandBox(DockerClient dockerClient) {
         this.dockerClient = dockerClient;
     }
 
-
     @Override
     public ExecuteCodeResponse executeCode(ExecuteCodeRequest executeCodeRequest) {
-        List<String> inputList = executeCodeRequest.getInputList();
-        String code = executeCodeRequest.getCode();
+        return super.executeCode(executeCodeRequest);
+    }
 
-        //1. 把用户的代码保存为文件
-        String userDir = System.getProperty("user.dir");
-        // 创建一个临时目录
-        String tempCodeDir = userDir + File.separator + TEMP_CODE_DIR_NAME;
-        if (!FileUtil.exist(tempCodeDir)) {
-            FileUtil.mkdir(tempCodeDir);
-        }
-        // 将代码隔离存放，每个用户一个目录
-        String userCodeDIR = tempCodeDir + File.separator + UUID.randomUUID();
-        String userCodeFilePath = userCodeDIR + File.separator + TEMP_FILE_NAME;
-        // 将代码写入文件
-        File userCodeFile = FileUtil.writeString(code, userCodeFilePath, StandardCharsets.UTF_8);
-
-        //2. 编译代码，得到 class 文件
-        String compileCmd = String.format("javac -encoding utf-8 %s", userCodeFilePath);
-        try {
-            ProcessUtils.run(compileCmd, "编译");
-        } catch (IOException | InterruptedException e) {
-            return getErrorResponse(e);
-        }
-
+    /**
+     * 使用docker执行代码
+     * @param userCodeFile
+     * @param inputList
+     * @return
+     */
+    @Override
+    public List<ExecuteMessage> executeCodeFile(File userCodeFile, List<String> inputList) {
         // 3. 把编译好的文件上传到容器环境内
         // 拉取 jdk 镜像，如果是项目第一次运行则拉取镜像
         if (IS_FIRST_JDK_IMAGE_PULL) {
@@ -101,6 +79,7 @@ public class JavaDockerCodeSandBox implements CodeSandBox {
         // 容器内存限制、容器 cpu 限制
         hostConfig.withMemory(100 * 1024 * 1024L).withCpuCount(2L);
         // 数据卷挂载
+        String userCodeDIR = userCodeFile.getParentFile().getAbsolutePath();
         hostConfig.setBinds(new Bind(userCodeDIR, new Volume("/sandbox")));
         CreateContainerResponse containerResponse = containerCmd
                 .withHostConfig(hostConfig)
@@ -167,48 +146,7 @@ public class JavaDockerCodeSandBox implements CodeSandBox {
         System.out.println("删除容器");
         dockerClient.removeContainerCmd(containerId).exec();
 
-        // 5. 整理返回结果
-        ExecuteCodeResponse executeCodeResponse = new ExecuteCodeResponse();
-        List<String> outputList = new ArrayList<>();
-        long maxExecTime = 0;
-        long maxExecMemory = 0;
-        for (ExecuteMessage executeMessage : execMessageList){
-            String errorMessage = executeMessage.getErrorMessage();
-            if (StrUtil.isNotBlank(errorMessage)){
-                // 代码运行出现错误，设置状态为 3
-                executeCodeResponse.setMessage(errorMessage);
-                executeCodeResponse.setStatus(3);
-                break;
-            }
-            outputList.add(executeMessage.getSuccessMessage());
-            Long execTime = executeMessage.getExecTime();
-            if (execTime != null){
-                // 最大执行时间
-                maxExecTime = Math.max(maxExecTime, execTime);
-            }
-            Long execMemory = executeMessage.getExecMemory();
-            if (execMemory != null){
-                // 最大执行消耗内存
-                maxExecMemory = Math.max(maxExecMemory, execMemory);
-            }
-        }
-        // 结果正确设置状态为 1
-        if (outputList.size() == execMessageList.size()){
-            executeCodeResponse.setStatus(1);
-            executeCodeResponse.setMessage("代码沙箱执行成功");
-        }
-        executeCodeResponse.setOutputList(outputList);
-        JudgeInfo judgeInfo = new JudgeInfo();
-        judgeInfo.setMemory(maxExecMemory);
-        judgeInfo.setTime(maxExecTime);
-        executeCodeResponse.setJudgeInfo(judgeInfo);
-
-        //6. 文件清理
-        if (FileUtil.exist(userCodeFile.getParentFile())){
-            boolean del = FileUtil.del(userCodeDIR);
-            System.out.println(del ? "文件删除成功" : "文件删除失败");
-        }
-        return executeCodeResponse;
+        return execMessageList;
     }
 
     /**
@@ -279,20 +217,4 @@ public class JavaDockerCodeSandBox implements CodeSandBox {
             }
         };
     }
-
-    /**
-     * 执行代码沙箱出现异常时的错误处理
-     *
-     * @param e
-     * @return
-     */
-    private ExecuteCodeResponse getErrorResponse(Exception e) {
-        ExecuteCodeResponse executeCodeResponse = new ExecuteCodeResponse();
-        executeCodeResponse.setOutputList(new ArrayList<>());
-        executeCodeResponse.setMessage(e.getMessage());
-        // 代码沙箱出现异常, 设置状态为 2
-        executeCodeResponse.setStatus(2);
-        return executeCodeResponse;
-    }
-
 }
