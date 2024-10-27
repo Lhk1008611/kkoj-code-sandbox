@@ -1,6 +1,7 @@
 package com.lhk.kkojcodesandbox.utils;
 
 import com.lhk.kkojcodesandbox.model.ExecuteMessage;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.StopWatch;
 
 import java.io.BufferedReader;
@@ -8,6 +9,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ProcessUtils {
 
@@ -58,14 +61,14 @@ public class ProcessUtils {
     private static String readExecOutput(InputStream inputStream) {
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
         String outputLine;
-        StringBuilder result = new StringBuilder();
+        List<String> outputLineList = new ArrayList<>();
         try {
             while ((outputLine = bufferedReader.readLine()) != null) {
-                result.append("\n").append(outputLine);
+                outputLineList.add(outputLine);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return result.toString();
+        return StringUtils.join(outputLineList, "\n");
     }
 }
