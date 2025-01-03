@@ -21,6 +21,7 @@ import java.util.UUID;
  * Java 原生实现代码沙箱
  */
 @Component
+@Deprecated
 public class JavaNativeCodeSandBox implements CodeSandBox {
 
     private static final String TEMP_CODE_DIR_NAME = "tempCode";

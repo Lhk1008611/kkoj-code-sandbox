@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
  * docker 实现代码沙箱
  */
 @Component
+@Deprecated
 public class JavaDockerCodeSandBox implements CodeSandBox {
 
     private final DockerClient dockerClient;
